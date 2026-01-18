@@ -4,9 +4,9 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class Election extends Model
+class Candidate extends Model
 {
     use HasFactory;
 
@@ -14,8 +14,9 @@ class Election extends Model
      * Kolom yang boleh diisi secara mass-assignment
      */
     protected $fillable = [
+        'election_id',
         'name',
-        'total_participants',
+        'photo',
         'status',
     ];
 
@@ -23,14 +24,14 @@ class Election extends Model
      * Casting tipe data untuk kolom tertentu
      */
     protected $casts = [
-        'total_participants' => 'integer',
+        'election_id' => 'integer',
     ];
 
     /**
-     * Relasi: Satu Election memiliki banyak Candidate
+     * Relasi: Candidate milik satu Election
      */
-    public function candidates(): HasMany
+    public function election(): BelongsTo
     {
-        return $this->hasMany(Candidate::class);
+        return $this->belongsTo(Election::class);
     }
 }
