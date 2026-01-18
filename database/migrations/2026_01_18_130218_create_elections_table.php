@@ -7,18 +7,21 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
-     * Run the migrations.
+     * Jalankan migration untuk membuat table elections
      */
     public function up(): void
     {
         Schema::create('elections', function (Blueprint $table) {
             $table->id();
-            $table->timestamps();
+            $table->string('name'); // Nama pemilihan
+            $table->integer('total_participants'); // Jumlah total peserta
+            $table->enum('status', ['draft', 'active', 'finished'])->default('draft'); // Status pemilihan
+            $table->timestamps(); // created_at & updated_at
         });
     }
 
     /**
-     * Reverse the migrations.
+     * Rollback migration (hapus table elections)
      */
     public function down(): void
     {
