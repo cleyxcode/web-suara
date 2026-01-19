@@ -33,4 +33,20 @@ class Election extends Model
     {
         return $this->hasMany(Candidate::class);
     }
+
+    /**
+     * Relasi: Satu Election memiliki banyak Round
+     */
+    public function rounds(): HasMany
+    {
+        return $this->hasMany(Round::class);
+    }
+
+    /**
+     * Relasi: Satu Election memiliki banyak Vote
+     */
+    public function votes(): HasMany
+    {
+        return $this->hasMany(Vote::class);
+    }
 }

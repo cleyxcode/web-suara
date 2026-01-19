@@ -5,20 +5,22 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 
-class Candidate extends Model
+class Vote extends Model
 {
     use HasFactory;
+
+    // Hanya gunakan created_at, tidak ada updated_at
+    const UPDATED_AT = null;
 
     /**
      * Kolom yang boleh diisi secara mass-assignment
      */
     protected $fillable = [
         'election_id',
-        'name',
-        'photo',
-        'status',
+        'round_id',
+        'candidate_id',
+        'voter_name',
     ];
 
     /**
@@ -26,10 +28,13 @@ class Candidate extends Model
      */
     protected $casts = [
         'election_id' => 'integer',
+        'round_id' => 'integer',
+        'candidate_id' => 'integer',
+        'created_at' => 'datetime',
     ];
 
     /**
-     * Relasi: Candidate milik satu Election
+     * Relasi: Vote milik satu Election
      */
     public function election(): BelongsTo
     {
@@ -37,10 +42,18 @@ class Candidate extends Model
     }
 
     /**
-     * Relasi: Satu Candidate memiliki banyak Vote
+     * Relasi: Vote milik satu Round
      */
-    public function votes(): HasMany
+    public function round(): BelongsTo
     {
-        return $this->hasMany(Vote::class);
+        return $this->belongsTo(Round::class);
+    }
+
+    /**
+     * Relasi: Vote milik satu Candidate
+     */
+    public function candidate(): BelongsTo
+    {
+        return $this->belongsTo(Candidate::class);
     }
 }

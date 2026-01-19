@@ -1,7 +1,7 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\VotingController;
 
-Route::get('/', function () {
-    return view('welcome');
-});
+// Route untuk voting (tanpa auth)
+Route::get('/voting', [VotingController::class, 'index'])->name('voting.index');
+Route::post('/voting', [VotingController::class, 'store'])->name('voting.store');
