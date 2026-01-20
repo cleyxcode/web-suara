@@ -61,7 +61,10 @@ class CandidateEliminationService
 
             if ($voteCount < self::MINIMUM_VOTES) {
                 // Eliminasi calon dengan suara < 5
-                $candidate->update(['status' => 'eliminated']);
+                $candidate->update([
+                    'status' => 'eliminated',
+                    'eliminated_at_round_id' => $round->id, // SIMPAN ROUND ID SAAT ELIMINASI
+                ]);
                 
                 $eliminatedCandidates[] = [
                     'id' => $candidate->id,

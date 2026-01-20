@@ -19,6 +19,7 @@ class Candidate extends Model
         'name',
         'photo',
         'status',
+        'eliminated_at_round_id',
     ];
 
     /**
@@ -26,6 +27,7 @@ class Candidate extends Model
      */
     protected $casts = [
         'election_id' => 'integer',
+        'eliminated_at_round_id' => 'integer',
     ];
 
     /**
