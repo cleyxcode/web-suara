@@ -9,6 +9,7 @@ use App\Models\Round;
 use App\Models\Vote;
 use App\Models\VotedParticipant;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Livewire\Component;
 
 class VotingLivewire extends Component
@@ -108,6 +109,9 @@ class VotingLivewire extends Component
             ->with('election')
             ->first();
 
+        // Debug: Log round info
+        Log::info('Active Round:', ['round' => $round ? $round->toArray() : null]);
+
         if (!$round) {
             return view('livewire.voting-livewire', [
                 'election' => null,
@@ -120,11 +124,25 @@ class VotingLivewire extends Component
         }
 
         $election = $round->election;
+        
+        // Debug: Log election info
+        Log::info('Election:', ['election' => $election ? $election->toArray() : null]);
+
         $participants = Participant::availableForRound($round->id)->get();
+        
+        // Debug: Log participants
+        Log::info('Available Participants:', ['count' => $participants->count()]);
+
         $candidates = Candidate::where('election_id', $election->id)
             ->where('status', 'active')
             ->orderBy('name')
             ->get();
+
+        // Debug: Log candidates
+        Log::info('Active Candidates:', [
+            'count' => $candidates->count(),
+            'candidates' => $candidates->pluck('name', 'id')->toArray()
+        ]);
 
         $totalParticipants = $election->total_participants;
         $votedCount = VotedParticipant::where('round_id', $round->id)->count();
@@ -139,6 +157,9 @@ class VotingLivewire extends Component
             'remaining_count' => $remainingCount,
             'participation_rate' => $participationRate,
         ];
+
+        // Debug: Log statistics
+        Log::info('Statistics:', $statistics);
 
         return view('livewire.voting-livewire', [
             'election' => $election,

@@ -6,7 +6,7 @@
             <div class="text-center">
                 <!-- Logo AMGPM -->
                 <div class="mb-4">
-                    <img src="https://amgpm.or.id/wp-content/uploads/2023/01/LOGO-AMGPM-1.png" 
+                    <img src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEh-KAKSykFAZb2sojO0RD_6lJ__wqPE3aMhb5b-EUNS6TuD2g5-NXOwhYSr1TPc04ASGlMnoD6HBA25AQdiSXlLPbsv-Ymdw9M8IcoafsiGQJ9DyiQAmGe0X8lt2__xWk4_oZ-csyk0hkTP/s1600/LOGO+AMGPM+TERBARU+TRANS.png" 
                          alt="Logo AMGPM" 
                          class="h-24 mx-auto"
                          onerror="this.style.display='none'">

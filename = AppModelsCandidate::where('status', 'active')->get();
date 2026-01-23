@@ -1,0 +1,12 @@
+[90m= [39m[34;4mApp\Models\Round[39;24m {#7365
+    [34mid[39m: [35m2[39m,
+    [34melection_id[39m: [35m2[39m,
+    [34mround_number[39m: [35m1[39m,
+    [34mstatus[39m: "[32mactive[39m",
+    [34mtotal_votes[39m: [35m0[39m,
+    [34mcreated_at[39m: "[32m2026-01-23 08:46:15[39m",
+    [34mupdated_at[39m: "[32m2026-01-23 08:46:23[39m",
+    [34mis_eliminated[39m: [35m0[39m,
+    [34meliminated_at[39m: [36mnull[39m,
+  }
+

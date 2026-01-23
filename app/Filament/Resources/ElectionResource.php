@@ -34,7 +34,7 @@ class ElectionResource extends Resource
                     ->label('Nama Pemilihan')
                     ->required()
                     ->maxLength(255)
-                    ->placeholder('Contoh: Pemilihan Ketua Ranting 2024'),
+                    ->placeholder('Contoh: Pemilihan Ketua 2026'),
 
                 // Input Jumlah Peserta
                 Forms\Components\TextInput::make('total_participants')
@@ -44,6 +44,17 @@ class ElectionResource extends Resource
                     ->minValue(1)
                     ->default(0)
                     ->helperText('Masukkan jumlah peserta yang berhak memilih'),
+
+                // Input Threshold Eliminasi - FIELD BARU
+                Forms\Components\TextInput::make('elimination_threshold')
+                    ->label('Batas Minimum Suara untuk Lolos')
+                    ->required()
+                    ->numeric()
+                    ->minValue(1)
+                    ->default(5)
+                    ->suffix('suara')
+                    ->helperText('Kandidat dengan suara di bawah angka ini akan tereliminasi')
+                    ->columnSpanFull(),
 
                 // Select Status
                 Forms\Components\Select::make('status')
@@ -78,6 +89,16 @@ class ElectionResource extends Resource
                     ->numeric()
                     ->sortable()
                     ->alignCenter(),
+
+                // Kolom Threshold Eliminasi - KOLOM BARU
+                Tables\Columns\TextColumn::make('elimination_threshold')
+                    ->label('Batas Eliminasi')
+                    ->numeric()
+                    ->sortable()
+                    ->alignCenter()
+                    ->suffix(' suara')
+                    ->description('Min. suara lolos')
+                    ->color('warning'),
 
                 // Kolom Status dengan Badge
                 Tables\Columns\BadgeColumn::make('status')

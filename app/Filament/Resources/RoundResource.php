@@ -95,7 +95,11 @@ class RoundResource extends Resource
                     ->searchable()
                     ->sortable()
                     ->badge()
-                    ->color('info'),
+                    ->color('info')
+                    ->description(function (Round $record) {
+                        $threshold = $record->election->elimination_threshold;
+                        return "Batas eliminasi: {$threshold} suara";
+                    }),
 
                 // Kolom Round Number
                 Tables\Columns\TextColumn::make('round_number')
@@ -186,173 +190,187 @@ class RoundResource extends Resource
                     ])
                     ->native(false),
             ])
-           ->actions([
-    // Action: Eliminasi Calon - PALING ATAS!
-    Tables\Actions\Action::make('eliminate')
-        ->label('Eliminasi')
-        ->icon('heroicon-o-fire')
-        ->color('danger')
-        ->requiresConfirmation()
-        ->modalHeading('Eliminasi Calon')
-        ->modalDescription(function (Round $record) {
-            $service = new CandidateEliminationService();
-            $results = $service->getVotingResults($record);
-            
-            $description = "Hasil Voting Putaran {$record->round_number}:\n\n";
-            foreach ($results as $result) {
-                $status = $result['will_be_eliminated'] ? '❌ GUGUR' : '✅ LOLOS';
-                $description .= "{$result['name']}: {$result['votes']} suara - {$status}\n";
-            }
-            $description .= "\nCalon dengan suara < 5 akan tersingkir. Lanjutkan?";
-            
-            return $description;
-        })
-        ->action(function (Round $record) {
-            $service = new CandidateEliminationService();
-            $result = $service->eliminate($record);
+            ->actions([
+                // Action: Eliminasi Calon - PALING ATAS!
+                Tables\Actions\Action::make('eliminate')
+                    ->label('Eliminasi')
+                    ->icon('heroicon-o-fire')
+                    ->color('danger')
+                    ->requiresConfirmation()
+                    ->modalHeading('Eliminasi Calon')
+                    ->modalDescription(function (Round $record) {
+                        $service = new CandidateEliminationService();
+                        $results = $service->getVotingResults($record);
+                        $threshold = $record->election->elimination_threshold; // AMBIL DARI DATABASE
+                        
+                        $description = "Hasil Voting Putaran {$record->round_number}:\n";
+                        $description .= "📊 Batas Minimum Lolos: {$threshold} suara\n\n";
+                        
+                        foreach ($results as $result) {
+                            $status = $result['will_be_eliminated'] ? '❌ GUGUR' : '✅ LOLOS';
+                            $description .= "{$result['name']}: {$result['votes']} suara - {$status}\n";
+                        }
+                        
+                        $description .= "\n⚠️ Calon dengan suara < {$threshold} akan tersingkir. Lanjutkan?";
+                        
+                        return $description;
+                    })
+                    ->action(function (Round $record) {
+                        $service = new CandidateEliminationService();
+                        $result = $service->eliminate($record);
 
-            if ($result['success']) {
-                Notification::make()
-                    ->title('Eliminasi Berhasil!')
-                    ->body($result['message'])
-                    ->success()
-                    ->duration(20000)
-                    ->send();
-            } else {
-                Notification::make()
-                    ->title('Eliminasi Gagal!')
-                    ->body($result['message'])
-                    ->danger()
-                    ->send();
-            }
-        })
-        ->visible(fn (Round $record) => $record->status === 'completed' && !$record->is_eliminated),
+                        if ($result['success']) {
+                            Notification::make()
+                                ->title('Eliminasi Berhasil!')
+                                ->body($result['message'])
+                                ->success()
+                                ->duration(20000)
+                                ->send();
+                        } else {
+                            Notification::make()
+                                ->title('Eliminasi Gagal!')
+                                ->body($result['message'])
+                                ->danger()
+                                ->send();
+                        }
+                    })
+                    ->visible(fn (Round $record) => $record->status === 'completed' && !$record->is_eliminated),
 
-    // Action: Activate Round
-    Tables\Actions\Action::make('activate')
-        ->label('Aktifkan')
-        ->icon('heroicon-o-play')
-        ->color('success')
-        ->requiresConfirmation()
-        ->modalHeading('Aktifkan Putaran')
-        ->modalDescription('Yakin ingin mengaktifkan putaran ini? Putaran aktif lainnya akan dinonaktifkan.')
-        ->action(function (Round $record) {
-            if ($record->election->status === 'finished') {
-                Notification::make()
-                    ->title('Gagal!')
-                    ->body('Tidak bisa mengaktifkan putaran karena pemilihan sudah selesai.')
-                    ->danger()
-                    ->send();
-                return;
-            }
+                // Action: Activate Round
+                Tables\Actions\Action::make('activate')
+                    ->label('Aktifkan')
+                    ->icon('heroicon-o-play')
+                    ->color('success')
+                    ->requiresConfirmation()
+                    ->modalHeading('Aktifkan Putaran')
+                    ->modalDescription(function (Round $record) {
+                        $threshold = $record->election->elimination_threshold;
+                        return "Yakin ingin mengaktifkan putaran ini?\n\n📊 Batas eliminasi yang berlaku: {$threshold} suara\n\nPutaran aktif lainnya akan dinonaktifkan.";
+                    })
+                    ->action(function (Round $record) {
+                        if ($record->election->status === 'finished') {
+                            Notification::make()
+                                ->title('Gagal!')
+                                ->body('Tidak bisa mengaktifkan putaran karena pemilihan sudah selesai.')
+                                ->danger()
+                                ->send();
+                            return;
+                        }
 
-            Round::where('election_id', $record->election_id)
-                ->where('status', 'active')
-                ->update(['status' => 'draft']);
+                        Round::where('election_id', $record->election_id)
+                            ->where('status', 'active')
+                            ->update(['status' => 'draft']);
 
-            $record->update(['status' => 'active']);
+                        $record->update(['status' => 'active']);
 
-            Notification::make()
-                ->title('Berhasil!')
-                ->body("Putaran {$record->round_number} telah diaktifkan.")
-                ->success()
-                ->send();
-        })
-        ->visible(fn (Round $record) => in_array($record->status, ['draft', 'invalid'])),
+                        $threshold = $record->election->elimination_threshold;
+                        
+                        Notification::make()
+                            ->title('Berhasil!')
+                            ->body("Putaran {$record->round_number} telah diaktifkan.\n📊 Batas eliminasi: {$threshold} suara")
+                            ->success()
+                            ->send();
+                    })
+                    ->visible(fn (Round $record) => in_array($record->status, ['draft', 'invalid'])),
 
-    // Action: Close Round
-    Tables\Actions\Action::make('close')
-        ->label('Tutup')
-        ->icon('heroicon-o-check-circle')
-        ->color('warning')
-        ->requiresConfirmation()
-        ->modalHeading('Tutup Putaran')
-        ->modalDescription('Yakin ingin menutup putaran ini? Status akan diubah menjadi completed.')
-        ->action(function (Round $record) {
-            $record->update(['status' => 'completed']);
+                // Action: Close Round
+                Tables\Actions\Action::make('close')
+                    ->label('Tutup')
+                    ->icon('heroicon-o-check-circle')
+                    ->color('warning')
+                    ->requiresConfirmation()
+                    ->modalHeading('Tutup Putaran')
+                    ->modalDescription(function (Round $record) {
+                        $threshold = $record->election->elimination_threshold;
+                        return "Yakin ingin menutup putaran ini?\n\nStatus akan diubah menjadi completed.\nSetelah ditutup, lakukan validasi dan eliminasi dengan batas {$threshold} suara.";
+                    })
+                    ->action(function (Round $record) {
+                        $record->update(['status' => 'completed']);
 
-            Notification::make()
-                ->title('Berhasil!')
-                ->body("Putaran {$record->round_number} telah ditutup. Silakan lakukan validasi untuk memastikan jumlah suara.")
-                ->success()
-                ->send();
-        })
-        ->visible(fn (Round $record) => $record->status === 'active'),
+                        $threshold = $record->election->elimination_threshold;
 
-    // Action: Validate Round
-    Tables\Actions\Action::make('validate')
-        ->label('Validasi')
-        ->icon('heroicon-o-shield-check')
-        ->color('info')
-        ->requiresConfirmation()
-        ->modalHeading('Validasi Putaran')
-        ->modalDescription(function (Round $record) {
-            $service = new RoundValidationService();
-            $summary = $service->getRoundSummary($record);
-            
-            return "Jumlah peserta: {$summary['total_participants']} | Jumlah suara: {$summary['total_votes']} | Partisipasi: {$summary['percentage']}%";
-        })
-        ->action(function (Round $record) {
-            $service = new RoundValidationService();
-            $result = $service->validateRound($record);
+                        Notification::make()
+                            ->title('Berhasil!')
+                            ->body("Putaran {$record->round_number} telah ditutup.\n\nSilakan lakukan validasi untuk memastikan jumlah suara.\n📊 Batas eliminasi: {$threshold} suara")
+                            ->success()
+                            ->send();
+                    })
+                    ->visible(fn (Round $record) => $record->status === 'active'),
 
-            if ($result['is_valid']) {
-                Notification::make()
-                    ->title('PUTARAN SAH!')
-                    ->body($result['message'])
-                    ->success()
-                    ->duration(10000)
-                    ->send();
-            } else {
-                Notification::make()
-                    ->title('PUTARAN TIDAK SAH!')
-                    ->body($result['message'])
-                    ->danger()
-                    ->duration(15000)
-                    ->send();
-            }
-        })
-        ->visible(fn (Round $record) => $record->status === 'completed'),
+                // Action: Validate Round
+                Tables\Actions\Action::make('validate')
+                    ->label('Validasi')
+                    ->icon('heroicon-o-shield-check')
+                    ->color('info')
+                    ->requiresConfirmation()
+                    ->modalHeading('Validasi Putaran')
+                    ->modalDescription(function (Round $record) {
+                        $service = new RoundValidationService();
+                        $summary = $service->getRoundSummary($record);
+                        $threshold = $record->election->elimination_threshold;
+                        
+                        return "Jumlah peserta: {$summary['total_participants']} | Jumlah suara: {$summary['total_votes']} | Partisipasi: {$summary['percentage']}%\n\n📊 Batas eliminasi: {$threshold} suara";
+                    })
+                    ->action(function (Round $record) {
+                        $service = new RoundValidationService();
+                        $result = $service->validateRound($record);
 
-    // Action: Reset for Revote
-    Tables\Actions\Action::make('reset')
-        ->label('Reset')
-        ->icon('heroicon-o-arrow-path')
-        ->color('gray')
-        ->requiresConfirmation()
-        ->modalHeading('Reset Putaran')
-        ->modalDescription('Putaran akan di-reset ke status draft. Vote sebelumnya tetap tersimpan sebagai arsip.')
-        ->action(function (Round $record) {
-            $service = new RoundValidationService();
-            $result = $service->resetRoundForRevote($record);
+                        if ($result['is_valid']) {
+                            Notification::make()
+                                ->title('PUTARAN SAH!')
+                                ->body($result['message'])
+                                ->success()
+                                ->duration(10000)
+                                ->send();
+                        } else {
+                            Notification::make()
+                                ->title('PUTARAN TIDAK SAH!')
+                                ->body($result['message'])
+                                ->danger()
+                                ->duration(15000)
+                                ->send();
+                        }
+                    })
+                    ->visible(fn (Round $record) => $record->status === 'completed'),
 
-            if ($result['success']) {
-                Notification::make()
-                    ->title('Berhasil!')
-                    ->body($result['message'])
-                    ->success()
-                    ->send();
-            } else {
-                Notification::make()
-                    ->title('Gagal!')
-                    ->body($result['message'])
-                    ->danger()
-                    ->send();
-            }
-        })
-        ->visible(fn (Round $record) => $record->status === 'invalid'),
+                // Action: Reset for Revote
+                Tables\Actions\Action::make('reset')
+                    ->label('Reset')
+                    ->icon('heroicon-o-arrow-path')
+                    ->color('gray')
+                    ->requiresConfirmation()
+                    ->modalHeading('Reset Putaran')
+                    ->modalDescription('Putaran akan di-reset ke status draft. Vote sebelumnya tetap tersimpan sebagai arsip.')
+                    ->action(function (Round $record) {
+                        $service = new RoundValidationService();
+                        $result = $service->resetRoundForRevote($record);
 
-    // Standard Actions
-    Tables\Actions\ViewAction::make(),
-    Tables\Actions\EditAction::make(),
-    Tables\Actions\DeleteAction::make(),
-    
-])
-->bulkActions([
-    Tables\Actions\BulkActionGroup::make([
-        Tables\Actions\DeleteBulkAction::make(),
-    ]),
-])
+                        if ($result['success']) {
+                            Notification::make()
+                                ->title('Berhasil!')
+                                ->body($result['message'])
+                                ->success()
+                                ->send();
+                        } else {
+                            Notification::make()
+                                ->title('Gagal!')
+                                ->body($result['message'])
+                                ->danger()
+                                ->send();
+                        }
+                    })
+                    ->visible(fn (Round $record) => $record->status === 'invalid'),
+
+                // Standard Actions
+                Tables\Actions\ViewAction::make(),
+                Tables\Actions\EditAction::make(),
+                Tables\Actions\DeleteAction::make(),
+            ])
+            ->bulkActions([
+                Tables\Actions\BulkActionGroup::make([
+                    Tables\Actions\DeleteBulkAction::make(),
+                ]),
+            ])
             ->defaultSort('created_at', 'desc');
     }
 

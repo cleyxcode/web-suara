@@ -17,6 +17,7 @@ class Election extends Model
         'name',
         'total_participants',
         'status',
+        'elimination_threshold',
     ];
 
     /**
@@ -24,6 +25,7 @@ class Election extends Model
      */
     protected $casts = [
         'total_participants' => 'integer',
+        'elimination_threshold' => 'integer',
     ];
 
     /**

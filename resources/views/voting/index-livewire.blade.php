@@ -10,7 +10,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
     
     <!-- Favicon -->
-    <link rel="icon" type="image/png" href="https://amgpm.or.id/wp-content/uploads/2023/01/LOGO-AMGPM-1.png">
+    <link rel="icon" type="image/png" href="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEh-KAKSykFAZb2sojO0RD_6lJ__wqPE3aMhb5b-EUNS6TuD2g5-NXOwhYSr1TPc04ASGlMnoD6HBA25AQdiSXlLPbsv-Ymdw9M8IcoafsiGQJ9DyiQAmGe0X8lt2__xWk4_oZ-csyk0hkTP/s1600/LOGO+AMGPM+TERBARU+TRANS.png">
     
     <script>
         tailwind.config = {
