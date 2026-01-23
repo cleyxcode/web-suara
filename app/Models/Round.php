@@ -70,4 +70,11 @@ class Round extends Model
             }
         });
     }
+    /**
+ * Relasi: Satu Round memiliki banyak VotedParticipant
+ */
+public function votedParticipants(): HasMany
+{
+    return $this->hasMany(VotedParticipant::class);
+}
 }

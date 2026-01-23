@@ -20,6 +20,7 @@ class Vote extends Model
         'election_id',
         'round_id',
         'candidate_id',
+        'participant_id',
         'voter_name',
     ];
 
@@ -30,6 +31,7 @@ class Vote extends Model
         'election_id' => 'integer',
         'round_id' => 'integer',
         'candidate_id' => 'integer',
+        'participant_id' => 'integer',
         'created_at' => 'datetime',
     ];
 
