@@ -13,6 +13,7 @@ class VotingPage extends Page
     protected static ?string $navigationLabel = 'Buka Voting';
     
     protected static ?string $title = 'Halaman Voting';
+    protected static ?int $navigationSort = 7;
 
     /**
      * Redirect ke halaman voting public
