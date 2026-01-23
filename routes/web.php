@@ -1,19 +1,22 @@
 <?php
 
+use App\Http\Controllers\PublicStatisticsController;
 use App\Http\Controllers\VotingController;
+use Illuminate\Support\Facades\Route;
 
-// // Route untuk voting (tanpa auth)
-// Route::get('/voting', [VotingController::class, 'index'])->name('voting.index');
-// Route::post('/voting', [VotingController::class, 'store'])->name('voting.store');
+/*
+|--------------------------------------------------------------------------
+| Web Routes
+|--------------------------------------------------------------------------
+*/
 
-
-// Route voting (sudah ada)
+// Route voting dengan Livewire (tanpa auth)
 Route::get('/voting', [VotingController::class, 'index'])->name('voting.index');
-Route::post('/voting', [VotingController::class, 'store'])
-    ->name('voting.store')
-    ->middleware('throttle:10,1');
-    // Route statistik publik (NEW)
+
+// Route statistik publik
 Route::get('/hasil', [PublicStatisticsController::class, 'index'])->name('public-statistics.index');
 
-
-
+// Route legacy POST untuk voting (optional - bisa dihapus jika full Livewire)
+// Route::post('/voting', [VotingController::class, 'store'])
+//     ->name('voting.store')
+//     ->middleware('throttle:10,1');

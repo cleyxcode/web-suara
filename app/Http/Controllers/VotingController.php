@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Candidate;
+use App\Models\Election;
 use App\Models\Participant;
 use App\Models\Round;
 use App\Models\Vote;
@@ -13,167 +14,83 @@ use Illuminate\Support\Facades\DB;
 class VotingController extends Controller
 {
     /**
-     * Tampilkan halaman voting
+     * Display voting page using Livewire
      */
     public function index()
     {
-        // Cari round yang aktif
-        $activeRound = Round::where('status', 'active')
-            ->with(['election'])
-            ->first();
-
-        // Jika tidak ada round aktif
-        if (!$activeRound) {
-            return view('voting.index', [
-                'error' => 'Tidak ada putaran voting yang aktif saat ini.',
-                'participants' => [],
-                'candidates' => [],
-                'election' => null,
-                'round' => null,
-                'statistics' => null,
-            ]);
-        }
-
-        // Validasi: Election harus active
-        if ($activeRound->election->status !== 'active') {
-            return view('voting.index', [
-                'error' => 'Pemilihan belum aktif atau sudah selesai.',
-                'participants' => [],
-                'candidates' => [],
-                'election' => null,
-                'round' => null,
-                'statistics' => null,
-            ]);
-        }
-
-        // Ambil participants yang BELUM vote di round ini
-        $participants = Participant::availableForRound($activeRound->id)->get();
-
-        // Ambil semua calon yang aktif untuk election ini
-        $candidates = Candidate::where('election_id', $activeRound->election_id)
-            ->where('status', 'active')
-            ->get();
-
-        // Jika tidak ada calon aktif
-        if ($candidates->isEmpty()) {
-            return view('voting.index', [
-                'error' => 'Tidak ada calon yang tersedia untuk voting.',
-                'participants' => $participants,
-                'candidates' => [],
-                'election' => $activeRound->election,
-                'round' => $activeRound,
-                'statistics' => null,
-            ]);
-        }
-
-        // Statistik
-        $totalParticipants = Participant::count();
-        $votedCount = VotedParticipant::where('round_id', $activeRound->id)->count();
-        $remainingCount = $totalParticipants - $votedCount;
-
-        $statistics = [
-            'total_participants' => $totalParticipants,
-            'voted_count' => $votedCount,
-            'remaining_count' => $remainingCount,
-            'participation_rate' => $totalParticipants > 0 
-                ? round(($votedCount / $totalParticipants) * 100, 2) 
-                : 0,
-        ];
-
-        return view('voting.index', [
-            'error' => null,
-            'participants' => $participants,
-            'candidates' => $candidates,
-            'election' => $activeRound->election,
-            'round' => $activeRound,
-            'statistics' => $statistics,
-        ]);
+        // Return view with Livewire component
+        return view('voting.index-livewire');
     }
 
     /**
-     * Proses submit vote
+     * Legacy store method (for backward compatibility)
+     * Bisa dihapus jika sudah full menggunakan Livewire
      */
     public function store(Request $request)
     {
-        // Validasi input
-        $validated = $request->validate([
+        $request->validate([
             'participant_id' => 'required|exists:participants,id',
             'candidate_id' => 'required|exists:candidates,id',
         ]);
 
-        // Cari round yang aktif
-        $activeRound = Round::where('status', 'active')->first();
-
-        if (!$activeRound) {
-            return redirect()->route('voting.index')
-                ->with('error', 'Tidak ada putaran voting yang aktif.');
-        }
-
-        // Validasi: Election harus active
-        if ($activeRound->election->status !== 'active') {
-            return redirect()->route('voting.index')
-                ->with('error', 'Pemilihan belum aktif atau sudah selesai.');
-        }
-
         try {
             DB::beginTransaction();
 
-            // Validasi: Participant belum vote di round ini
-            $alreadyVoted = VotedParticipant::where('round_id', $activeRound->id)
-                ->where('participant_id', $validated['participant_id'])
+            // Ambil active round
+            $round = Round::where('status', 'active')->first();
+
+            if (!$round) {
+                return back()->with('error', 'Tidak ada putaran yang sedang aktif saat ini.');
+            }
+
+            // Cek apakah participant sudah vote di round ini
+            $alreadyVoted = VotedParticipant::where('round_id', $round->id)
+                ->where('participant_id', $request->participant_id)
                 ->exists();
 
             if ($alreadyVoted) {
-                DB::rollBack();
-                return redirect()->route('voting.index')
-                    ->with('error', 'Peserta ini sudah memberikan suara di putaran ini.');
+                return back()->with('error', 'Anda sudah memberikan suara di putaran ini!');
             }
 
-            // Validasi: Candidate harus dari election yang sama dan aktif
-            $candidate = Candidate::where('id', $validated['candidate_id'])
-                ->where('election_id', $activeRound->election_id)
+            // Ambil nama participant
+            $participant = Participant::find($request->participant_id);
+            
+            // Validasi candidate aktif
+            $candidate = Candidate::where('id', $request->candidate_id)
                 ->where('status', 'active')
                 ->first();
 
             if (!$candidate) {
-                DB::rollBack();
-                return redirect()->route('voting.index')
-                    ->with('error', 'Calon yang dipilih tidak valid.');
+                return back()->with('error', 'Calon yang dipilih sudah tidak aktif.');
             }
 
-            // Get participant name untuk voter_name
-            $participant = Participant::findOrFail($validated['participant_id']);
-
-            // 1. Simpan vote
+            // Simpan vote
             Vote::create([
-                'election_id' => $activeRound->election_id,
-                'round_id' => $activeRound->id,
-                'candidate_id' => $candidate->id,
-                'participant_id' => $participant->id,
-                'voter_name' => $participant->name, // Opsional, untuk backward compatibility
+                'election_id' => $round->election_id,
+                'round_id' => $round->id,
+                'candidate_id' => $request->candidate_id,
+                'participant_id' => $request->participant_id,
+                'voter_name' => $participant->name,
             ]);
 
-            // 2. Record bahwa participant sudah vote
+            // Tandai participant sudah vote
             VotedParticipant::create([
-                'round_id' => $activeRound->id,
-                'participant_id' => $participant->id,
+                'round_id' => $round->id,
+                'participant_id' => $request->participant_id,
                 'voted_at' => now(),
             ]);
 
-            // 3. Increment total_votes
-            $activeRound->increment('total_votes');
+            // Update total votes di round
+            $totalVotes = Vote::where('round_id', $round->id)->count();
+            $round->update(['total_votes' => $totalVotes]);
 
             DB::commit();
 
-            // Redirect dengan pesan sukses
-            return redirect()->route('voting.index')
-                ->with('success', 'Terima kasih, ' . $participant->name . '! Suara Anda telah tersimpan. Silakan berganti peserta.');
+            return back()->with('success', "✅ Terima kasih! Suara Anda untuk {$candidate->name} telah berhasil disimpan.");
 
         } catch (\Exception $e) {
             DB::rollBack();
-            
-            return redirect()->route('voting.index')
-                ->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
+            return back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
         }
     }
 }
