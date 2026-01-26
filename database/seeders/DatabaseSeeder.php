@@ -12,15 +12,13 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // Seeder user default (opsional)
-        User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
-        ]);
+    
 
         // 🔥 PANGGIL SEEDER PESERTA
         $this->call([
+            ElectionSeeder::class,
             ParticipantSeeder::class,
+            CandidateSeeder::class,
         ]);
     }
 }

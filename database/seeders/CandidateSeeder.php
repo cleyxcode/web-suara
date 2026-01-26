@@ -2,16 +2,17 @@
 
 namespace Database\Seeders;
 
-use App\Models\Participant;
+use App\Models\Candidate;
 use Illuminate\Database\Seeder;
 
-class ParticipantSeeder extends Seeder
+class CandidateSeeder extends Seeder
 {
     public function run(): void
     {
-        // Data peserta dari RANCANGAN PESERTA KONFERENSI CABANG ISTIMEWA-I
-        $participants = [
-            'Yoseph Talaperu',
+        // Data kandidat dari RANCANGAN PESERTA KONFERENSI CABANG ISTIMEWA-I
+        // 25 Januari 2025 - Peserta Biasa (39 orang)
+        $candidates = [
+            
             'Joseph R. Loiwatu',
             'Mario Soenarko',
             'Frangklien Lewerissa',
@@ -25,7 +26,6 @@ class ParticipantSeeder extends Seeder
             'Debby A. Talaperu',
             'Jenesis M. Titahelu',
             'Azri R. Nendissa',
-            'Pdt L. Laisila',
             'Arkelino Hunihua',
             'Vira Talaperu',
             'Clovdia G. Hunihua',
@@ -47,15 +47,23 @@ class ParticipantSeeder extends Seeder
             'Marvel Saununu',
             'Monic Mairuhu',
             'Dkn Ny F.J. Maukary/M',
-            'Dkn Ny. J. Sumtaki/V',
+            
             'Pnt P. M. Sahetapy',
             'Dkn. W. da Costa',
         ];
 
-        foreach ($participants as $name) {
-            Participant::create(['name' => $name]);
+        // Asumsikan election_id = 1 (sesuaikan dengan ID election Anda)
+        $electionId = 1;
+
+        foreach ($candidates as $name) {
+            Candidate::create([
+                'election_id' => $electionId,
+                'name' => $name,
+                'photo' => null, // Atau bisa diisi path foto jika ada
+                'status' => 'active',
+            ]);
         }
 
-        $this->command->info('✅ ' . count($participants) . ' participants created!');
+        $this->command->info('✅ ' . count($candidates) . ' candidates created!');
     }
 }
